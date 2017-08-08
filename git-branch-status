@@ -113,7 +113,7 @@ USAGE_MSG
 
 ### constants ###
 
-readonly MAX_COL_W=27 # should be >= 12
+readonly MAX_COL_W=50 # should be >= 12
 readonly CWHITE='\033[0;37m'
 readonly CRED='\033[0;31m'
 readonly CGREEN='\033[0;32m'
