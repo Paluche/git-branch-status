@@ -114,19 +114,20 @@ USAGE_MSG
 ### constants ###
 
 readonly MAX_COL_W=50 # should be >= 12
-readonly CWHITE='\033[0;37m'
-readonly CRED='\033[0;31m'
-readonly CGREEN='\033[0;32m'
-readonly CYELLOW='\033[1;33m'
-readonly CBLUE='\033[1;34m'
-readonly CEND='\033[0m'
-readonly CDEFAULT=$CWHITE
-readonly CTRACKING=$CBLUE
-readonly CAHEAD=$CYELLOW
-readonly CBEHIND=$CRED
-readonly CEVEN=$CGREEN
-readonly CNOUPSTREAM=$CRED
-readonly CNOLOCAL=$CRED
+readonly C_WHITE='\033[0;37m'
+readonly C_RED='\033[0;31m'
+readonly C_GREEN='\033[0;32m'
+readonly C_YELLOW='\033[1;33m'
+readonly C_BLUE='\033[1;34m'
+readonly C_END='\033[0m'
+readonly C_DEFAULT=$C_WHITE
+readonly C_TRACKING=$C_BLUE
+readonly C_AHEAD=$C_YELLOW
+readonly C_BEHIND=$C_RED
+readonly C_EVEN=$C_GREEN
+readonly C_NO_UPSTREAM=$C_RED
+readonly C_NO_LOCAL=$C_RED
+readonly C_GONE=$C_RED
 readonly HRULE_CHAR='-'
 readonly JOIN_CHAR='~'
 readonly JOIN_REGEX="s/$JOIN_CHAR/ /"
@@ -303,51 +304,51 @@ function GenerateReport # (local_branch_name remote_branch_name)
         (($SHOW_ALL_UPSTREAM)) || (($n_differences)) || return
 
         # set data for branches with remote counterparts or arbitrary branches
-        (($is_tracked_branch)) && color=$CTRACKING || color=$CDEFAULT
+        (($is_tracked_branch)) && color=$C_TRACKING || color=$C_DEFAULT
         local_color=$color
         if (($n_behind))
         then
             behind_msg="(behind$JOIN_CHAR$n_behind)"
-            behind_color=$CBEHIND
+            behind_color=$C_BEHIND
         else
             behind_msg="(even)"
-            behind_color=$CEVEN
+            behind_color=$C_EVEN
         fi
         if (($n_ahead))
         then
             ahead_msg="(ahead$JOIN_CHAR$n_ahead)"
-            ahead_color=$CAHEAD
+            ahead_color=$C_AHEAD
         else
             ahead_msg="(even)"
-            ahead_color=$CEVEN
+            ahead_color=$C_EVEN
         fi
         remote_color=$color
     elif (($does_base_branch_exist)) && !(($does_compare_branch_exist)) && (($SHOW_ALL_LOCAL))
     then
         # dummy data for local branches with no upstream counterpart
-        local_color=$CDEFAULT
+        local_color=$C_DEFAULT
 
-        behind_color="$CDEFAULT"
+        behind_color="$C_DEFAULT"
         behind_msg="n/a"
 
-        ahead_color="$CDEFAULT"
+        ahead_color="$C_DEFAULT"
         ahead_msg="n/a"
 
-        remote_color=$CNOUPSTREAM
+        remote_color=$C_NO_UPSTREAM
         compare_branch="$NO_UPSTREAM"
     elif !(($does_base_branch_exist)) && (($does_compare_branch_exist)) && (($SHOW_ALL_REMOTE))
     then
         # dummy data for remote branches with no local counterpart
-        local_color=$CNOLOCAL
+        local_color=$C_NOLOCAL
         base_branch="$NO_LOCAL"
 
-        behind_color="$CDEFAULT"
+        behind_color="$C_DEFAULT"
         behind_msg="n/a"
 
-        ahead_color="$CDEFAULT"
+        ahead_color="$C_DEFAULT"
         ahead_msg="n/a"
 
-        remote_color=$CDEFAULT
+        remote_color=$C_DEFAULT
     else return
     fi
 
@@ -415,10 +416,10 @@ function PrintReportLine
     else
         star=" "
     fi
-    local_msg="%$((  $local_offset  ))s$star$(echo -e $DELIM $local_color$local_msg$CEND)"
-    behind_msg="%$(( $behind_offset ))s $(    echo -e $DELIM $behind_color$behind_msg$CEND)"
-    ahead_msg="%$((  $ahead_offset  ))s $(    echo -e $DELIM $ahead_color$ahead_msg$CEND)"
-    remote_msg="%$(( $remote_offset ))s $(    echo -e $DELIM $remote_color$remote_msg$CEND)"
+    local_msg="%$((  $local_offset  ))s$star$(echo -e $DELIM $local_color$local_msg$C_END)"
+    behind_msg="%$(( $behind_offset ))s $(    echo -e $DELIM $behind_color$behind_msg$C_END)"
+    ahead_msg="%$((  $ahead_offset  ))s $(    echo -e $DELIM $ahead_color$ahead_msg$C_END)"
+    remote_msg="%$(( $remote_offset ))s $(    echo -e $DELIM $remote_color$remote_msg$C_END)"
     end_msg="%$((    $end_offset    ))s $DELIM"
     printf "$local_msg$behind_msg$ahead_msg$remote_msg$end_msg\n"
 }
@@ -451,7 +452,7 @@ function PrintReport # (table_header_line no_results_msg)
         rule_w=$((${#no_results_msg}+4))
 
         PrintHRule $rule_w
-        echo -e "  $DELIM $CEVEN$no_results_msg$CEND $DELIM"
+        echo -e "  $DELIM $C_EVEN$no_results_msg$C_END $DELIM"
         PrintHRule $rule_w
     fi
 
