@@ -361,7 +361,7 @@ function GenerateReport # (local_branch_name remote_branch_name)
     elif !(($does_base_branch_exist)) && (($does_compare_branch_exist)) && (($SHOW_ALL_REMOTE))
     then
         # dummy data for remote branches with no local counterpart
-        local_color=$C_NOLOCAL
+        local_color=$C_NO_LOCAL
         base_branch="$NO_LOCAL"
 
         behind_color="$C_DEFAULT"
@@ -456,7 +456,7 @@ function PrintReport # (table_header_line no_results_msg)
     !(($n_notable_differences)) && !(($all_in_sync)) && return
 
     # pretty print results
-    printf "\n  $header\n"
+    printf "  $header\n"
     if (($n_notable_differences))
     then
         rule_w=$(($local_w+$behind_w+$ahead_w+$remote_w+13))
@@ -466,6 +466,11 @@ function PrintReport # (table_header_line no_results_msg)
             PrintReportLine
         done
         PrintHRule $rule_w
+
+        if (($all_in_sync))
+        then
+            echo ""
+        fi
     fi
 
     # print synchronized message if all compared upstreams had no diffs
