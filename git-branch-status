@@ -158,6 +158,7 @@ readonly C_RESET='\033[0m'
 # Color configuration
 readonly C_DEFAULT=$C_WHITE
 readonly C_LOCAL=$C_WHITE
+readonly C_MINE=$C_BLUE
 readonly C_AHEAD=$C_ORANGE
 readonly C_BEHIND=$C_RED
 readonly C_EVEN=$C_GREEN
@@ -181,6 +182,7 @@ readonly BRANCH_SYNCED_MSG="This tracking branch is synchronized with it's upstr
 readonly REMOTES_SYNCED_MSG="All remote branches with identically named local branches are synchronized with them"
 readonly UNTRACKED_SYNCHED_MSG="These branches are synchronized"
 readonly NOT_AVAILABLE_MSG="n/a"
+readonly MINE_REGEXP="hle/"
 
 
 ### variables ###
@@ -267,6 +269,24 @@ function IsRemoteGone # (branch_name)
     [ "$is_remote_gone" ] && echo 1 || echo 0
 }
 
+function IsMine # (branch name)
+{
+    branch=$1
+
+    is_mine=$(echo $branch | grep -E "$MINE_REGEXP")
+
+    [ "$is_mine" ] && echo 1 || echo 0
+}
+
+function IsMaster # (branch name)
+{
+    branch=$1
+
+    is_mine=$(echo $branch | grep -E "master$")
+
+    [ "$is_mine" ] && echo 1 || echo 0
+}
+
 function IsTrackedBranch # (base_branch_name compare_branch_name)
 {
     base_branch=$1
@@ -339,6 +359,42 @@ function GenerateReport # (local_branch_name remote_branch_name)
     # filter branches per CLI arg
     [ "$FILTER_BRANCH" -a "$base_branch" != "$FILTER_BRANCH" ] && return
 
+    # Default color and message for 'behind' information.
+    behind_color="$C_NOT_AVAILABLE"
+    behind_msg="$NOT_AVAILABLE_MSG"
+
+    # Default color and message for 'ahead' information.
+    ahead_color="$C_NOT_AVAILABLE"
+    ahead_msg="$NOT_AVAILABLE_MSG"
+
+    # Set local color. Might be override by exceptions.
+    if (($(IsMaster $base_branch)))
+    then
+        local_color=$C_MASTER
+    elif (($is_tracked_branch))
+    then
+        if (($(IsMine $base_branch)))
+        then
+            local_color=$C_MINE
+        else
+            local_color=$C_LOCAL
+        fi
+    else
+        local_color=$C_DEFAULT
+    fi
+
+    # Set remote color. Might be override by exceptions.
+    if (($(IsMine $compare_branch)))
+    then
+        # Color branch that are mine.
+        remote_color=$C_MINE
+    elif (($(IsMaster $compare_branch)))
+    then
+        remote_color=$C_MASTER
+    else
+        remote_color=$C_DEFAULT
+    fi
+
     # parse local<->remote or arbitrary branches sync status
     if (($does_base_branch_exist)) && (($does_compare_branch_exist))
     then
@@ -357,16 +413,6 @@ function GenerateReport # (local_branch_name remote_branch_name)
 
         # set data for branches with remote counterparts or arbitrary branches
 
-        if [ $base_branch == "master" ]
-        then
-          local_color=$C_MASTER
-        elif (($is_tracked_branch))
-        then
-          local_color=$C_TRACKING
-        else
-          local_color=$C_DEFAULT
-        fi
-
         if (($n_behind))
         then
             behind_msg="(behind$JOIN_CHAR$n_behind)"
@@ -375,6 +421,7 @@ function GenerateReport # (local_branch_name remote_branch_name)
             behind_msg="(even)"
             behind_color=$C_EVEN
         fi
+
         if (($n_ahead))
         then
             ahead_msg="(ahead$JOIN_CHAR$n_ahead)"
@@ -383,7 +430,6 @@ function GenerateReport # (local_branch_name remote_branch_name)
             ahead_msg="(even)"
             ahead_color=$C_EVEN
         fi
-        remote_color=$color
     elif (($does_base_branch_exist)) && !(($does_compare_branch_exist)) && (($SHOW_ALL_LOCAL))
     then
         # Branch is with no remote. Branch is not associated with an upstream
@@ -398,29 +444,14 @@ function GenerateReport # (local_branch_name remote_branch_name)
             remote_color=$C_NO_UPSTREAM
             compare_branch="$NO_UPSTREAM"
         fi
-
-        # dummy data for local branches with no upstream counterpart
-
-        behind_color="$C_NOT_AVAILABLE"
-        behind_msg="$NOT_AVAILABLE_MSG"
-
-        ahead_color="$C_NOT_AVAILABLE"
-        ahead_msg="$NOT_AVAILABLE_MSG"
-
     elif !(($does_base_branch_exist)) && (($does_compare_branch_exist)) && (($SHOW_ALL_REMOTE))
     then
-        # dummy data for remote branches with no local counterpart
+        # A remote branch doesn't have a local branch associated.
         local_color=$C_NO_LOCAL
         base_branch="$NO_LOCAL"
 
-        behind_color="$C_NOT_AVAILABLE"
-        behind_msg="$NOT_AVAILABLE_MSG"
-
-        ahead_color="$C_NOT_AVAILABLE"
-        ahead_msg="$NOT_AVAILABLE_MSG"
-
-        remote_color=$C_DEFAULT
-    else return
+    else
+        return
     fi
 
     # populate lists
@@ -529,6 +560,7 @@ function PrintReport # (table_header_line no_results_msg)
 
         PrintHRule $rule_w
         echo -e "  $DELIM $C_EVEN$no_results_msg$C_RESET $DELIM"
+
         PrintHRule $rule_w
     fi
 
