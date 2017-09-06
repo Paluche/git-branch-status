@@ -131,6 +131,7 @@ readonly C_NO_UPSTREAM=$C_CYAN
 readonly C_NO_LOCAL=$C_RED
 readonly C_GONE=$C_RED
 readonly C_MASTER=$C_YELLOW
+readonly C_NOT_AVAILABLE=$C_DARK_GREY
 readonly HRULE_CHAR='-'
 readonly JOIN_CHAR='~'
 readonly JOIN_REGEX="s/$JOIN_CHAR/ /"
@@ -143,6 +144,7 @@ readonly LOCALS_SYNCED_MSG="All tracking branches are synchronized with their up
 readonly BRANCH_SYNCED_MSG="This tracking branch is synchronized with it's upstream"
 readonly REMOTES_SYNCED_MSG="All remote branches with identically named local branches are synchronized with them"
 readonly UNTRACKED_SYNCHED_MSG="These branches are synchronized"
+readonly NOT_AVAILABLE_MSG="n/a"
 
 
 ### variables ###
@@ -363,11 +365,11 @@ function GenerateReport # (local_branch_name remote_branch_name)
 
         # dummy data for local branches with no upstream counterpart
 
-        behind_color="$C_DEFAULT"
-        behind_msg="n/a"
+        behind_color="$C_NOT_AVAILABLE"
+        behind_msg="$NOT_AVAILABLE_MSG"
 
-        ahead_color="$C_DEFAULT"
-        ahead_msg="n/a"
+        ahead_color="$C_NOT_AVAILABLE"
+        ahead_msg="$NOT_AVAILABLE_MSG"
 
     elif !(($does_base_branch_exist)) && (($does_compare_branch_exist)) && (($SHOW_ALL_REMOTE))
     then
@@ -375,11 +377,11 @@ function GenerateReport # (local_branch_name remote_branch_name)
         local_color=$C_NO_LOCAL
         base_branch="$NO_LOCAL"
 
-        behind_color="$C_DEFAULT"
-        behind_msg="n/a"
+        behind_color="$C_NOT_AVAILABLE"
+        behind_msg="$NOT_AVAILABLE_MSG"
 
-        ahead_color="$C_DEFAULT"
-        ahead_msg="n/a"
+        ahead_color="$C_NOT_AVAILABLE"
+        ahead_msg="$NOT_AVAILABLE_MSG"
 
         remote_color=$C_DEFAULT
     else return
