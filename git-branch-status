@@ -130,6 +130,7 @@ readonly C_EVEN=$C_GREEN
 readonly C_NO_UPSTREAM=$C_CYAN
 readonly C_NO_LOCAL=$C_RED
 readonly C_GONE=$C_RED
+readonly C_MASTER=$C_YELLOW
 readonly HRULE_CHAR='-'
 readonly JOIN_CHAR='~'
 readonly JOIN_REGEX="s/$JOIN_CHAR/ /"
@@ -317,8 +318,17 @@ function GenerateReport # (local_branch_name remote_branch_name)
         (($SHOW_ALL_UPSTREAM)) || (($n_differences)) || return
 
         # set data for branches with remote counterparts or arbitrary branches
-        (($is_tracked_branch)) && color=$C_TRACKING || color=$C_DEFAULT
-        local_color=$color
+
+        if [ $base_branch == "master" ]
+        then
+          local_color=$C_MASTER
+        elif (($is_tracked_branch))
+        then
+          local_color=$C_TRACKING
+        else
+          local_color=$C_DEFAULT
+        fi
+
         if (($n_behind))
         then
             behind_msg="(behind$JOIN_CHAR$n_behind)"
