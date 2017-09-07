@@ -167,6 +167,8 @@ readonly C_NO_LOCAL=$C_DARK_GREY
 readonly C_GONE=$C_RED
 readonly C_MASTER=$C_YELLOW
 readonly C_NOT_AVAILABLE=$C_DARK_GREY
+readonly C_IS_ROOM=$C_GREEN
+readonly C_IS_NOT_ROOM=$C_RED
 
 # Text
 readonly HRULE_CHAR='-'
@@ -183,20 +185,24 @@ readonly REMOTES_SYNCED_MSG="All remote branches with identically named local br
 readonly UNTRACKED_SYNCHED_MSG="These branches are synchronized"
 readonly NOT_AVAILABLE_MSG="n/a"
 readonly MINE_REGEXP="hle/"
-
+readonly IS_ROOM="✔"
+readonly IS_NOT_ROOM=""
 
 ### variables ###
 n_tracked_differences=0
 were_any_branches_compared=0
 local_w=0
+room_w=0 # Rebase On Origin/Master
 behind_w=0
 ahead_w=0
 remote_w=0
 declare -a local_msgs=()
+declare -a room_msgs=()
 declare -a behind_msgs=()
 declare -a ahead_msgs=()
 declare -a remote_msgs=()
 declare -a local_colors=()
+declare -a room_colors=()
 declare -a behind_colors=()
 declare -a ahead_colors=()
 declare -a remote_colors=()
@@ -295,6 +301,13 @@ function IsTrackedBranch # (base_branch_name compare_branch_name)
     [ "$compare_branch" == "$upstream_branch" ] && echo 1 || echo 0
 }
 
+function IsRebasedOnOriginMaster # (branch_name)
+{
+    branch=$1
+
+    $(git merge-base --is-ancestor origin/master $branch) && echo 1 || echo 0
+}
+
 function DoesBranchExist # (branch_name)
 {
     branch=$1
@@ -331,14 +344,17 @@ function Reset
     n_tracked_differences=0
     were_any_branches_compared=0
     local_w=0
+    room_w=0
     behind_w=0
     ahead_w=0
     remote_w=0
     local_msgs=()
+    room_msgs=()
     behind_msgs=()
     ahead_msgs=()
     remote_msgs=()
     local_colors=()
+    room_colors=()
     behind_colors=()
     ahead_colors=()
     remote_colors=()
@@ -352,6 +368,7 @@ function GenerateReport # (local_branch_name remote_branch_name)
     does_compare_branch_exist=$(DoesBranchExist $compare_branch)
     is_tracked_branch=$(IsTrackedBranch $base_branch $compare_branch)
     is_remote_gone=$(IsRemoteGone $base_branch)
+    is_master=$(IsMaster $base_branch)
 
     # filter heads
     [ "$base_branch" == 'HEAD' ] && return
@@ -454,6 +471,23 @@ function GenerateReport # (local_branch_name remote_branch_name)
         return
     fi
 
+    # Rebase On Origin/Master.
+    # Set default color and message
+    room_color=$C_NOT_AVAILABLE
+    room_msg=$NOT_AVAILABLE_MSG
+
+    if (($does_base_branch_exist))
+    then
+      if (($(IsRebasedOnOriginMaster $base_branch)))
+      then
+          room_color=$C_IS_ROOM
+          room_msg=$IS_ROOM
+      else
+          room_color=$C_IS_NOT_ROOM
+          room_msg=$IS_NOT_ROOM
+      fi
+    fi
+
     # populate lists
     local_msg="$(AppendHeadDate $base_branch)"
     local_msg="${local_msg:0:$MAX_COL_W}"
@@ -462,9 +496,12 @@ function GenerateReport # (local_branch_name remote_branch_name)
     remote_msg="${remote_msg:0:$MAX_COL_W}" ;
 
     local_msgs=(    ${local_msgs[@]}    "$local_msg"    )
+    room_msgs=(     ${room_msgs[@]}     "$room_msg"     )
     behind_msgs=(   ${behind_msgs[@]}   "$behind_msg"   )
     ahead_msgs=(    ${ahead_msgs[@]}    "$ahead_msg"    )
     remote_msgs=(   ${remote_msgs[@]}   "$remote_msg"   )
+
+    room_colors=(   ${room_colors[@]}   "$room_color"   )
     local_colors=(  ${local_colors[@]}  "$local_color"  )
     behind_colors=( ${behind_colors[@]} "$behind_color" )
     ahead_colors=(  ${ahead_colors[@]}  "$ahead_color"  )
@@ -474,6 +511,11 @@ function GenerateReport # (local_branch_name remote_branch_name)
     if [ ${#local_msg}  -gt $local_w  ]
     then
         local_w=${#local_msg}
+    fi
+
+    if [ ${#room_msg}  -gt $room_w  ]
+    then
+        room_w=${#room_msg}
     fi
 
     if [ ${#behind_msg} -gt $behind_w ]
@@ -496,17 +538,20 @@ function PrintReportLine
 {
     # fetch data
     local_msg=$(  echo ${local_msgs[$result_n]}  | sed "$JOIN_REGEX" )
+    room_msg=$(   echo ${room_msgs[$result_n]}   | sed "$JOIN_REGEX" )
     behind_msg=$( echo ${behind_msgs[$result_n]} | sed "$JOIN_REGEX" )
     ahead_msg=$(  echo ${ahead_msgs[$result_n]}  | sed "$JOIN_REGEX" )
     remote_msg=$( echo ${remote_msgs[$result_n]} | sed "$JOIN_REGEX" )
     local_color="${local_colors[$result_n]}"
+    room_color="${room_colors[$result_n]}"
     behind_color="${behind_colors[$result_n]}"
     ahead_color="${ahead_colors[$result_n]}"
     remote_color="${remote_colors[$result_n]}"
 
     # calculate column offsets
     local_offset=1
-    behind_offset=$(( $local_w  - ${#local_msg}  ))
+    room_offset=$((   $local_w  - ${#local_msg}  ))
+    behind_offset=$(( $room_w   - ${#room_msg}   ))
     ahead_offset=$((  $behind_w - ${#behind_msg} ))
     remote_offset=$(( $ahead_w  - ${#ahead_msg}  ))
     end_offset=$((    $remote_w - ${#remote_msg} ))
@@ -519,11 +564,12 @@ function PrintReportLine
         star=" "
     fi
     local_msg="%$((  $local_offset  ))s$star$(echo -e $DELIM $local_color$local_msg$C_RESET)"
+    room_msg="%$((   $room_offset   ))s $(    echo -e $DELIM $room_color$room_msg$C_RESET)"
     behind_msg="%$(( $behind_offset ))s $(    echo -e $DELIM $behind_color$behind_msg$C_RESET)"
     ahead_msg="%$((  $ahead_offset  ))s $(    echo -e $DELIM $ahead_color$ahead_msg$C_RESET)"
     remote_msg="%$(( $remote_offset ))s $(    echo -e $DELIM $remote_color$remote_msg$C_RESET)"
     end_msg="%$((    $end_offset    ))s $DELIM"
-    printf "$local_msg$behind_msg$ahead_msg$remote_msg$end_msg\n"
+    printf "$local_msg$room_msg$behind_msg$ahead_msg$remote_msg$end_msg\n"
 }
 
 function PrintReport # (table_header_line no_results_msg)
@@ -539,7 +585,7 @@ function PrintReport # (table_header_line no_results_msg)
     printf "  $header\n"
     if (($n_notable_differences))
     then
-        rule_w=$(($local_w+$behind_w+$ahead_w+$remote_w+13))
+        rule_w=$(($local_w+$room_w+$behind_w+$ahead_w+$remote_w+16))
         PrintHRule $rule_w
         for (( result_n = 0 ; result_n < $n_notable_differences ; result_n++ ))
         do
