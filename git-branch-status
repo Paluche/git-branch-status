@@ -592,7 +592,7 @@ case "$1" in
 
     '-h'|'--help')
         echo "$USAGE"
-        exit
+        exit 1
         ;;
 
     '-l'|'--local')
@@ -615,9 +615,9 @@ case "$1" in
         ;;
 esac
 
-[ "$branch_a" ] && !(($(DoesBranchExist $branch_a))) && echo "no such branch: '$branch_a'" && exit
-[ "$branch_b" ] && !(($(DoesBranchExist $branch_b))) && echo "no such branch: '$branch_b'" && exit
-[ "$branch_a" ] && [ -z "$branch_b" ] && !(($(IsLocalBranch $branch_a))) && echo "no such local branch: '$branch_a'" && exit
+[ "$branch_a" ] && !(($(DoesBranchExist $branch_a))) && echo "no such branch: '$branch_a'" && exit 2
+[ "$branch_b" ] && !(($(DoesBranchExist $branch_b))) && echo "no such branch: '$branch_b'" && exit 2
+[ "$branch_a" ] && [ -z "$branch_b" ] && !(($(IsLocalBranch $branch_a))) && echo "no such local branch: '$branch_a'" && exit 2
 [ "$branch_a" ] && show_all_local=1 # force "no upstream" message for non-tracking branches
 
 readonly FILTER_BRANCH=$branch_a
@@ -649,7 +649,7 @@ else
     PrintReport "$FILTER_BRANCH <-> $COMPARE_BRANCH" "$synched_msg"
 fi
 
-(($SHOW_ALL_REMOTE)) && [ -z "$FILTER_BRANCH" ] || exit
+(($SHOW_ALL_REMOTE)) && [ -z "$FILTER_BRANCH" ] || exit 0
 
 # compare sync status of remote branches to local branches with the same names
 for remote_repo in `git remote`
@@ -662,3 +662,5 @@ do
 
     PrintReport "local <-> $remote_repo" "$REMOTES_SYNCED_MSG"
 done
+
+exit 0
