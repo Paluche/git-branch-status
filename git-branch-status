@@ -697,6 +697,8 @@ fi
 
 (($SHOW_ALL_REMOTE)) && [ -z "$FILTER_BRANCH" ] || exit 0
 
+echo ""
+
 # compare sync status of remote branches to local branches with the same names
 for remote_repo in `git remote`
 do
