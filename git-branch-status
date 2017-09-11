@@ -288,7 +288,7 @@ function IsMaster # (branch name)
 {
     branch=$1
 
-    is_mine=$(echo $branch | grep -E "master$")
+    is_mine=$(echo $branch | grep -E "(^|/)master$")
 
     [ "$is_mine" ] && echo 1 || echo 0
 }
